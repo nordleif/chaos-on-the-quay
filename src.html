@@ -58,6 +58,14 @@ body.touch #an{font-size:34px}body.touch #ar{font-size:18px}body.touch #wn{font-
 body.touch #radar{bottom:auto;top:48px;width:80px;height:80px}
 body.touch #hpb{width:20vw}body.touch #hpw{font-size:20px}body.touch #wave{font-size:17px;top:12px}body.touch #score{font-size:26px}
 body.touch #bossw{top:40px;font-size:14px}
+#board{margin-top:4px;font-size:18px;line-height:1.15}#board .bh{font-size:14px;color:#ffe9a8}#board .me{text-decoration:underline}
+#feed{position:absolute;left:14px;top:50px;font-size:18px;line-height:1.2}
+body.touch #board{font-size:14px}body.touch #feed{top:40px;font-size:14px;left:100px}
+.row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.btn.sm{font-size:min(7vw,34px);padding:4px 22px;background:#2ec4b6}
+.btn:disabled{opacity:.6}
+#nm{pointer-events:auto;font:inherit;font-size:min(6vw,26px);text-align:center;text-transform:uppercase;width:min(80vw,300px);padding:6px 10px;-webkit-user-select:text;user-select:text;outline:none}
+#err{font-size:min(4.5vw,22px);color:#ffd23f;min-height:1em}
 @media (max-height:480px){.ov{gap:6px}.ov h1{font-size:min(13vw,22vh)}.ov h2{font-size:min(4vw,22px)}.help{font-size:13px;padding:6px 12px}.btn{font-size:30px}}
 </style>
 </head>
@@ -68,7 +76,8 @@ body.touch #bossw{top:40px;font-size:14px}
   <div id="hpw" class="st">♥<div id="hpb"><div id="hpf"></div></div><span id="hpt">100</span></div>
   <div id="wave" class="st"></div>
   <div id="bossw" class="st">HUMMER-HARALD<div id="bossb"><div id="bossf"></div></div></div>
-  <div id="score" class="st"><div id="sc">0</div><div id="combo"></div></div>
+  <div id="score" class="st"><div id="sc">0</div><div id="combo"></div><div id="board"></div></div>
+  <div id="feed" class="st"></div>
   <div id="ammo" class="st"><div id="wn"></div><span id="an">24</span> <span id="ar">/ ∞</span>
     <div id="slots"><div class="sl" style="background:#ff4b3e">1</div><div class="sl" style="background:#ffd23f">2</div><div class="sl" style="background:#c98a4b">3</div></div></div>
   <div id="xh"><i class="d"></i><i id="x0"></i><i id="x1"></i><i id="x2"></i><i id="x3"></i></div>
@@ -83,12 +92,15 @@ body.touch #bossw{top:40px;font-size:14px}
 <div id="menu" class="ov">
   <h1 class="st">CHAOS ON<br>THE QUAY</h1>
   <h2 class="st">Skaldyrene har overtaget Mågevig. Giv dem ketchup.</h2>
-  <button id="go" class="btn">INDLÆSER…</button>
+  <input id="nm" class="card" maxlength="12" placeholder="Navn" aria-label="Navn" autocomplete="off" spellcheck="false">
+  <div class="row"><button id="go" class="btn">INDLÆSER…</button></div>
+  <div class="row" id="mp"><button id="bco" class="btn sm">CO-OP</button><button id="bpv" class="btn sm">PVP</button></div>
+  <div id="err" class="st"></div>
   <div class="help card" id="help"></div>
 </div>
-<div id="pause" class="ov" style="display:none"><h2 class="st" style="font-size:min(10vw,60px)">PAUSE</h2><button id="res" class="btn">FORTSÆT</button></div>
+<div id="pause" class="ov" style="display:none"><h2 class="st" style="font-size:min(10vw,60px)">PAUSE</h2><button id="res" class="btn">FORTSÆT</button><div class="row" id="mpb" style="display:none"><button id="cp" class="btn sm">KOPIÉR LINK</button><button id="lv" class="btn sm">FORLAD</button></div></div>
 <div id="over" class="ov" style="display:none">
-  <h1 class="st" style="color:#ff4b5c">SPLAT!</h1>
+  <h1 class="st" id="ovh" style="color:#ff4b5c">SPLAT!</h1>
   <h2 class="st" id="ovt"></h2>
   <button id="again" class="btn">PRØV IGEN</button>
 </div>
