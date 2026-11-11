@@ -1,0 +1,8 @@
+{
+  "name": "chaos-on-the-quay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cartoon harbour FPS in a single HTML page (three.js)",
+  "scripts": { "build": "node build.js" },
+  "dependencies": { "three": "0.160.0" }
+}

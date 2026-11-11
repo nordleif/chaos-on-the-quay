@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Chaos on the Quay</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#6fd0f5;touch-action:none;font-family:Bangers,"Comic Sans MS","Chalkboard SE","Marker Felt",Impact,sans-serif;letter-spacing:.04em;color:#fff}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.st{-webkit-text-stroke:.14em #151515;paint-order:stroke fill;text-shadow:.07em .09em 0 #151515}
+.card{background:#fff3c4;color:#151515;border:4px solid #151515;border-radius:14px;box-shadow:5px 6px 0 #151515}
+#hud{position:fixed;inset:0;pointer-events:none;display:none}
+#hpw{position:absolute;left:14px;top:12px;display:flex;align-items:center;gap:8px;font-size:26px}
+#hpb{width:min(34vw,220px);height:24px;background:#3a2530;border:4px solid #151515;border-radius:12px;overflow:hidden;box-shadow:3px 4px 0 #151515}
+#hpf{height:100%;width:100%;background:#ff4b5c;transition:width .15s}
+#score{position:absolute;right:14px;top:8px;font-size:34px;text-align:right;line-height:1}
+#combo{font-size:20px;color:#ffd23f;min-height:22px}
+#wave{position:absolute;left:50%;top:8px;transform:translateX(-50%);font-size:24px;text-align:center;white-space:nowrap}
+#bossw{position:absolute;left:50%;top:48px;transform:translateX(-50%);width:min(60vw,420px);display:none;text-align:center;font-size:18px}
+#bossb{height:16px;background:#3a2530;border:4px solid #151515;border-radius:10px;overflow:hidden}
+#bossf{height:100%;background:#b5179e;width:100%}
+#ammo{position:absolute;right:14px;bottom:14px;text-align:right;line-height:1}
+#an{font-size:46px}#ar{font-size:22px;color:#ffe9a8}#wn{font-size:18px;color:#ffd23f}
+#slots{display:flex;gap:6px;justify-content:flex-end;margin-top:6px}
+.sl{width:34px;height:34px;border:3px solid #151515;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#151515;opacity:.55;box-shadow:2px 3px 0 #151515}
+.sl.on{opacity:1;transform:translateY(-4px) scale(1.12)}
+#xh{position:absolute;left:50%;top:50%;width:0;height:0}
+#xh i{position:absolute;background:#fff;border:2px solid #151515;border-radius:3px}
+#xh .d{width:6px;height:6px;left:-3px;top:-3px;border-radius:50%}
+#hm{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px;opacity:0}
+#hm:before,#hm:after{content:"";position:absolute;left:14px;top:-2px;width:6px;height:38px;background:var(--c,#fff);border:2px solid #151515;border-radius:3px;transform:rotate(45deg)}
+#hm:after{transform:rotate(-45deg)}
+#vig{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(255,40,60,0) 45%,rgba(255,30,50,.75) 100%);opacity:0}
+#klat{position:absolute;left:18%;top:12%;width:64%;height:60%;opacity:0;background:radial-gradient(ellipse at 40% 45%,#fff 0 38%,transparent 39%),radial-gradient(ellipse at 66% 60%,#fff 0 24%,transparent 25%),radial-gradient(ellipse at 30% 72%,#f4f4ea 0 14%,transparent 15%),radial-gradient(ellipse at 62% 28%,#f4f4ea 0 12%,transparent 13%)}
+#msg{position:absolute;left:50%;top:26%;transform:translate(-50%,-50%) rotate(-3deg);font-size:min(6vw,13vh,70px);text-align:center;opacity:0;white-space:nowrap;color:#ffd23f}
+#sub{position:absolute;left:50%;top:38%;transform:translateX(-50%);font-size:min(4vw,7vh,26px);opacity:0;white-space:nowrap}
+#radar{position:absolute;left:14px;bottom:14px;width:104px;height:104px;border-radius:50%;border:4px solid #151515;background:rgba(20,30,60,.45);box-shadow:3px 4px 0 #151515}
+.ov{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(20,24,60,.35);text-align:center;padding:16px;z-index:5}
+.ov h1{margin:0;font-size:min(17vw,120px);line-height:.9;color:#ffd23f;font-weight:400;transform:rotate(-4deg)}
+.ov h2{margin:0;font-size:min(6vw,34px);font-weight:400}
+.btn{pointer-events:auto;cursor:pointer;font:inherit;font-size:min(9vw,48px);padding:6px 34px;background:#ff4b5c;color:#fff;border:5px solid #151515;border-radius:18px;box-shadow:6px 7px 0 #151515}
+.btn:active{transform:translate(3px,4px);box-shadow:3px 3px 0 #151515}
+.help{padding:10px 18px;font-size:min(4.2vw,20px);max-width:560px;line-height:1.25}
+#touch{position:fixed;inset:0;display:none;z-index:2}
+.tb{position:absolute;border:4px solid #151515;border-radius:50%;background:rgba(255,243,196,.75);color:#151515;display:flex;align-items:center;justify-content:center;box-shadow:3px 4px 0 #151515;font-size:20px}
+.tb.dn{background:#ffd23f;transform:scale(.94)}
+#bF{right:22px;bottom:56px;width:88px;height:88px;background:rgba(255,75,92,.85);color:#fff;font-size:24px}
+#bJ{right:124px;bottom:30px;width:62px;height:62px}
+#bR{right:26px;bottom:158px;width:52px;height:52px;font-size:17px}
+#bW{right:96px;bottom:132px;width:56px;height:56px;font-size:15px}
+#jb{position:absolute;width:120px;height:120px;margin:-60px;border-radius:50%;border:4px solid rgba(21,21,21,.7);background:rgba(255,255,255,.18);display:none}
+#jk{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px;border-radius:50%;background:#fff3c4;border:4px solid #151515}
+body.touch #ammo{bottom:auto;top:46px}
+body.touch #slots{display:none}
+body.touch #an{font-size:34px}body.touch #ar{font-size:18px}body.touch #wn{font-size:15px}
+body.touch #radar{bottom:auto;top:48px;width:80px;height:80px}
+body.touch #hpb{width:20vw}body.touch #hpw{font-size:20px}body.touch #wave{font-size:17px;top:12px}body.touch #score{font-size:26px}
+body.touch #bossw{top:40px;font-size:14px}
+@media (max-height:480px){.ov{gap:6px}.ov h1{font-size:min(13vw,22vh)}.ov h2{font-size:min(4vw,22px)}.help{font-size:13px;padding:6px 12px}.btn{font-size:30px}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+  <div id="vig"></div><div id="klat"></div>
+  <div id="hpw" class="st">♥<div id="hpb"><div id="hpf"></div></div><span id="hpt">100</span></div>
+  <div id="wave" class="st"></div>
+  <div id="bossw" class="st">HUMMER-HARALD<div id="bossb"><div id="bossf"></div></div></div>
+  <div id="score" class="st"><div id="sc">0</div><div id="combo"></div></div>
+  <div id="ammo" class="st"><div id="wn"></div><span id="an">24</span> <span id="ar">/ ∞</span>
+    <div id="slots"><div class="sl" style="background:#ff4b3e">1</div><div class="sl" style="background:#ffd23f">2</div><div class="sl" style="background:#c98a4b">3</div></div></div>
+  <div id="xh"><i class="d"></i><i id="x0"></i><i id="x1"></i><i id="x2"></i><i id="x3"></i></div>
+  <div id="hm"></div>
+  <div id="msg" class="st"></div><div id="sub" class="st"></div>
+  <canvas id="radar" width="104" height="104"></canvas>
+</div>
+<div id="touch">
+  <div id="jb"><div id="jk"></div></div>
+  <div id="bF" class="tb">SKYD</div><div id="bJ" class="tb">HOP</div><div id="bR" class="tb">LAD</div><div id="bW" class="tb">VÅBEN</div>
+</div>
+<div id="menu" class="ov">
+  <h1 class="st">CHAOS ON<br>THE QUAY</h1>
+  <h2 class="st">Skaldyrene har overtaget Mågevig. Giv dem ketchup.</h2>
+  <button id="go" class="btn">INDLÆSER…</button>
+  <div class="help card" id="help"></div>
+</div>
+<div id="pause" class="ov" style="display:none"><h2 class="st" style="font-size:min(10vw,60px)">PAUSE</h2><button id="res" class="btn">FORTSÆT</button></div>
+<div id="over" class="ov" style="display:none">
+  <h1 class="st" style="color:#ff4b5c">SPLAT!</h1>
+  <h2 class="st" id="ovt"></h2>
+  <button id="again" class="btn">PRØV IGEN</button>
+</div>
+<script>/*THREE*/</script>
+<script>/*GAME*/</script>
+</body>
+</html>
