@@ -1,10 +1,12 @@
 # Chaos on the Quay
 
-A toon-shaded browser FPS set in the harbour town of Mågevig. One self-contained HTML page built on three.js r160, plus a small room server for multiplayer.
+A toon-shaded browser FPS set in the harbour town of Mågevig. One self-contained HTML page built on three.js r160, plus a small room server for multiplayer. Both are hosted on one Cloudflare Worker.
 
 ## Play
 
-Open `docs/index.html` in a browser, or https://nordleif.github.io/chaos-on-the-quay/.
+https://chaos-on-the-quay.bo-29c.workers.dev
+
+Opening `docs/index.html` directly also works. Multiplayer then connects to the URL above.
 
 The menu has three modes:
 
@@ -30,28 +32,25 @@ This inlines `node_modules/three/build/three.min.js` and `game.js` into `src.htm
 - One browser in each room is the **host**. It runs waves, creatures, barrels and pickup spots, and broadcasts a snapshot 10 times a second. The other browsers render that snapshot.
 - Every player owns their own movement and HP, and sends their state 15 times a second.
 - Hits on creatures go to the host. Hits on players (PvP) go to the victim. Explosions are announced by whoever caused them.
-- The server (`server/`) is a relay: a Cloudflare Worker with one Durable Object per room. It assigns ids and colors, picks the host and forwards messages. When the host leaves or hides its tab, the next player takes over.
+- The Worker (`server/`) serves the page from `docs/` and runs the rooms under `/room/<id>`. Each room is a Durable Object that relays messages. It assigns ids and colors, picks the host and forwards messages. When the host leaves or hides its tab, the next player takes over.
 - Browsers pause animation frames for background tabs, so a timer keeps the simulation running when frames stop.
 
 ### Run locally
 
 ```
+npm install && npm run build
 cd server
 npm install
 npm run dev
 ```
 
-Serve `docs/` with any static server and open it with `?server=ws://127.0.0.1:8787`. Add `&debug` to expose `window.__kaj` for inspection.
+Open http://127.0.0.1:8787. Add `?debug` to expose `window.__kaj` for inspection.
 
-### Deploy the server
+### Deploy
 
-```
-cd server
-npx wrangler login
-npm run deploy
-```
+Pushing to `main` runs `.github/workflows/deploy.yml`, which builds the page and deploys the Worker. It needs the repository secret `CLOUDFLARE_API_TOKEN`: a Cloudflare API token made from the **Edit Cloudflare Workers** template.
 
-Wrangler prints the worker URL, for example `https://chaos-on-the-quay.<account>.workers.dev`. Put it in `SERVER` near the top of the multiplayer section in `game.js` (as `wss://...`), rebuild and push. GitHub Pages serves the new page.
+To deploy by hand: `npm run build`, then `cd server && npx wrangler deploy`.
 
 ### Cost
 
@@ -63,7 +62,8 @@ The Workers free plan is enough for casual play. Durable Object requests are the
 - `src.html`: markup and CSS, with placeholders for the two scripts
 - `build.js`: the inlining step
 - `docs/index.html`: the built, playable page
-- `server/`: the room relay (Cloudflare Worker + Durable Object)
+- `server/`: the Worker that serves the page and the rooms
+- `.github/workflows/deploy.yml`: deploys on push to `main`
 
 ## Controls
 

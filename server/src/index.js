@@ -116,7 +116,7 @@ export default {
   async fetch(req, env) {
     const url = new URL(req.url);
     const m = url.pathname.match(/^\/room\/([a-z0-9-]{1,32})$/i);
-    if (!m) return new Response('chaos-on-the-quay rooms', { status: 200 });
+    if (!m) return new Response('Not found', { status: 404 });
     if (req.headers.get('Upgrade') !== 'websocket') return new Response('Expected WebSocket', { status: 426 });
     return env.ROOM.get(env.ROOM.idFromName(m[1].toLowerCase())).fetch(req);
   },

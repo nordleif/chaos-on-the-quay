@@ -559,7 +559,10 @@ $('again').onclick=()=>{if(!NET.on)startGame();else if(NET.host)restartAll();els
 // broadcasts them. Everyone owns their own movement and HP. Messages go through a relay
 // (server/) that adds the sender id as `f` and delivers to everyone else, or to `to`.
 const QS=new URLSearchParams(location.search);
-const SERVER=(QS.get('server')||'wss://chaos-on-the-quay.bo-29c.workers.dev').replace(/\/$/,'');
+// The Worker that serves the page also hosts the rooms, so use our own address.
+// Opened from a file or another host (the old GitHub Pages link): fall back to the Worker.
+const SAME=/^https?:$/.test(location.protocol)&&!/github\.io$/.test(location.hostname);
+const SERVER=(QS.get('server')||(SAME?(location.protocol==='https:'?'wss://':'ws://')+location.host:'wss://chaos-on-the-quay.bo-29c.workers.dev')).replace(/\/$/,'');
 const NET={on:false,ws:null,id:null,hostId:null,host:false,mode:'solo',room:null,css:'#fff',peers:new Map(),seq:0,sendT:0,snapT:0};
 const enemyById=new Map(),pickById=new Map();
 const PCOL=[0xff4b5c,0x2ec4b6,0xffd23f,0x9b5de5,0xf79d65,0x4f9dde,0x86d16a,0xff8fb3];
