@@ -692,7 +692,7 @@ let joining=false;
 async function join(room,mode){if(joining)return;joining=true;$('err').textContent='';try{localStorage.setItem('kaj_name',myName())}catch(e){}
   initAudio();if(AC&&AC.state==='suspended')AC.resume();if(!isTouch)lock();
   const btns=[$('go'),$('bco'),$('bpv')],old=$('go').textContent;btns.forEach(b=>b.disabled=true);$('go').textContent='FORBINDER…';
-  try{await connect(room,mode);const u=new URLSearchParams(location.search);u.set('room',room);u.set('mode',NET.mode);history.replaceState(null,'','?'+u);$('mpb').style.display='flex';startGame()}
+  try{await connect(room,mode);const u=new URLSearchParams(location.search);u.set('room',room);u.set('mode',NET.mode);history.replaceState(null,'','?'+u);$('cp').style.display='';startGame()}
   catch(r){$('err').textContent=r==='full'?'Rummet er fuldt. Start et nyt spil.':'Ingen forbindelse til serveren. Prøv igen.';if(document.exitPointerLock&&locked)document.exitPointerLock()}
   finally{joining=false;btns.forEach(b=>b.disabled=false);$('go').textContent=old}}
 function initMenu(){const nm=$('nm');try{nm.value=localStorage.getItem('kaj_name')||''}catch(e){}

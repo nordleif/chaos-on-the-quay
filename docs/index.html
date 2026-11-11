@@ -98,7 +98,7 @@ body.touch #board{font-size:14px}body.touch #feed{top:40px;font-size:14px;left:1
   <div id="err" class="st"></div>
   <div class="help card" id="help"></div>
 </div>
-<div id="pause" class="ov" style="display:none"><h2 class="st" style="font-size:min(10vw,60px)">PAUSE</h2><button id="res" class="btn">FORTSÆT</button><div class="row" id="mpb" style="display:none"><button id="cp" class="btn sm">KOPIÉR LINK</button><button id="lv" class="btn sm">FORLAD</button></div></div>
+<div id="pause" class="ov" style="display:none"><h2 class="st" style="font-size:min(10vw,60px)">PAUSE</h2><button id="res" class="btn">FORTSÆT</button><div class="row" id="mpb"><button id="cp" class="btn sm" style="display:none">KOPIÉR LINK</button><button id="lv" class="btn sm">FORLAD</button></div></div>
 <div id="over" class="ov" style="display:none">
   <h1 class="st" id="ovh" style="color:#ff4b5c">SPLAT!</h1>
   <h2 class="st" id="ovt"></h2>
@@ -806,7 +806,7 @@ let joining=false;
 async function join(room,mode){if(joining)return;joining=true;$('err').textContent='';try{localStorage.setItem('kaj_name',myName())}catch(e){}
   initAudio();if(AC&&AC.state==='suspended')AC.resume();if(!isTouch)lock();
   const btns=[$('go'),$('bco'),$('bpv')],old=$('go').textContent;btns.forEach(b=>b.disabled=true);$('go').textContent='FORBINDER…';
-  try{await connect(room,mode);const u=new URLSearchParams(location.search);u.set('room',room);u.set('mode',NET.mode);history.replaceState(null,'','?'+u);$('mpb').style.display='flex';startGame()}
+  try{await connect(room,mode);const u=new URLSearchParams(location.search);u.set('room',room);u.set('mode',NET.mode);history.replaceState(null,'','?'+u);$('cp').style.display='';startGame()}
   catch(r){$('err').textContent=r==='full'?'Rummet er fuldt. Start et nyt spil.':'Ingen forbindelse til serveren. Prøv igen.';if(document.exitPointerLock&&locked)document.exitPointerLock()}
   finally{joining=false;btns.forEach(b=>b.disabled=false);$('go').textContent=old}}
 function initMenu(){const nm=$('nm');try{nm.value=localStorage.getItem('kaj_name')||''}catch(e){}
