@@ -14,7 +14,9 @@ The menu has three modes:
 - **Co-op**: up to 8 players against shared waves. No friendly fire. Fallen players return at the next wave. The round ends when everyone is down.
 - **PvP**: up to 8 players shoot each other while the creatures attack everyone. Player kills give 300 points, creature kills their usual points. First to 3000 wins. Respawn after 3 seconds.
 
-Co-op and PvP create a room and put it in the address bar (`?room=abc123&mode=pvp`). Share that link, or use **Kopiér link** in the pause menu.
+**Ny co-op** and **Ny PvP** start a game with an easy name such as **KRABBE 41**. Open games are listed under **Åbne spil** in the menu with their mode, player count and player names. Tap one to join. The list is public.
+
+A game can also be shared as a link (`?room=krabbe-41&mode=coop`), from the address bar or **Kopiér link** in the pause menu.
 
 ## Build
 
@@ -33,6 +35,7 @@ This inlines `node_modules/three/build/three.min.js` and `game.js` into `src.htm
 - Every player owns their own movement and HP, and sends their state 15 times a second.
 - Hits on creatures go to the host. Hits on players (PvP) go to the victim. Explosions are announced by whoever caused them.
 - The Worker (`server/`) serves the page from `docs/` and runs the rooms under `/room/<id>`. Each room is a Durable Object that relays messages. It assigns ids and colors, picks the host and forwards messages. When the host leaves or hides its tab, the next player takes over.
+- A single Lobby Durable Object keeps the list of open rooms, served at `/lobby`. Rooms report on every join and leave and every 30 seconds while in use. Rooms not heard from in 90 seconds drop off the list.
 - Browsers pause animation frames for background tabs, so a timer keeps the simulation running when frames stop.
 
 ### Run locally
