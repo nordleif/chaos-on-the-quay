@@ -1,11 +1,14 @@
 // Room relay for Chaos on the Quay.
 // One Durable Object per room. It tracks who is connected, picks the host
 // (the browser that runs creatures and waves) and forwards game messages.
+// One Lobby Durable Object keeps the list of open rooms shown in the menu.
 import { DurableObject } from 'cloudflare:workers';
 
 const MAX_PLAYERS = 8;
 const MAX_MSG = 16384;
 const MODES = ['coop', 'pvp'];
+const REPORT_EVERY = 30000; // rooms refresh their lobby entry this often while in use
+const STALE_AFTER = 90000;  // lobby drops rooms it has not heard from in this long
 
 export class Room extends DurableObject {
   async fetch(req) {
@@ -22,6 +25,7 @@ export class Room extends DurableObject {
     }
 
     if (!live.length) await this.ctx.storage.deleteAll();
+    await this.ctx.storage.put('room', url.pathname.split('/').pop().toLowerCase());
     let mode = await this.ctx.storage.get('mode');
     if (!mode) {
       mode = MODES.includes(url.searchParams.get('mode')) ? url.searchParams.get('mode') : 'coop';
@@ -46,6 +50,7 @@ export class Room extends DurableObject {
     const host = await this.pickHost();
     server.send(JSON.stringify({ t: 'hi', id: me.id, mode, host, peers, col }));
     this.broadcast({ t: 'join', id: me.id, name, col }, server);
+    await this.report();
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -55,6 +60,7 @@ export class Room extends DurableObject {
     try { m = JSON.parse(data); } catch { return; }
     if (!m || typeof m.t !== 'string') return;
     const me = ws.deserializeAttachment();
+    if (Date.now() - (this.reported || 0) > REPORT_EVERY) await this.report();
 
     if (m.t === 'vis') {
       me.vis = !!m.v;
@@ -80,8 +86,22 @@ export class Room extends DurableObject {
     if (!me) return;
     try { ws.close(1000, 'bye'); } catch {}
     this.broadcast({ t: 'leave', id: me.id }, ws);
+    await this.report(ws);
     if (!this.sockets(ws).length) { await this.ctx.storage.deleteAll(); return; }
     await this.pickHost(ws);
+  }
+
+  // Tell the lobby who is here. An empty room removes itself.
+  async report(except) {
+    this.reported = Date.now();
+    const id = await this.ctx.storage.get('room');
+    if (!id) return;
+    const names = this.sockets(except).map(s => s.deserializeAttachment().name);
+    const mode = await this.ctx.storage.get('mode');
+    const lobby = this.env.LOBBY.get(this.env.LOBBY.idFromName('lobby'));
+    try {
+      await lobby.fetch('https://lobby/report', { method: 'POST', body: JSON.stringify({ id, mode, names }) });
+    } catch {}
   }
 
   sockets(except) {
@@ -112,9 +132,31 @@ export class Room extends DurableObject {
   }
 }
 
+export class Lobby extends DurableObject {
+  async fetch(req) {
+    if (req.method === 'POST') {
+      const r = await req.json();
+      if (!r.names.length) await this.ctx.storage.delete('r:' + r.id);
+      else await this.ctx.storage.put('r:' + r.id, { id: r.id, mode: r.mode, names: r.names, max: MAX_PLAYERS, t: Date.now() });
+      return new Response('ok');
+    }
+    const now = Date.now(), rooms = [];
+    for (const [k, r] of await this.ctx.storage.list({ prefix: 'r:' })) {
+      if (now - r.t > STALE_AFTER) await this.ctx.storage.delete(k);
+      else rooms.push({ id: r.id, mode: r.mode, names: r.names, max: r.max });
+    }
+    rooms.sort((a, b) => b.names.length - a.names.length || a.id.localeCompare(b.id));
+    return Response.json(rooms);
+  }
+}
+
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
+    if (url.pathname === '/lobby') {
+      const res = await env.LOBBY.get(env.LOBBY.idFromName('lobby')).fetch('https://lobby/list');
+      return new Response(res.body, { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' } });
+    }
     const m = url.pathname.match(/^\/room\/([a-z0-9-]{1,32})$/i);
     if (!m) return new Response('Not found', { status: 404 });
     if (req.headers.get('Upgrade') !== 'websocket') return new Response('Expected WebSocket', { status: 426 });

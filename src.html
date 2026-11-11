@@ -65,6 +65,16 @@ body.touch #board{font-size:14px}body.touch #feed{top:40px;font-size:14px;left:1
 .btn.sm{font-size:min(7vw,34px);padding:4px 22px;background:#2ec4b6}
 .btn:disabled{opacity:.6}
 #nm{pointer-events:auto;font:inherit;font-size:min(6vw,26px);text-align:center;text-transform:uppercase;width:min(80vw,300px);padding:6px 10px;-webkit-user-select:text;user-select:text;outline:none}
+#menu{justify-content:safe center;overflow-y:auto}
+#lob{pointer-events:auto;width:min(92vw,520px);padding:8px 10px}
+#lob .lh{font-size:min(5vw,24px);margin-bottom:4px}
+#rooms{display:flex;flex-direction:column;gap:6px;max-height:34vh;overflow-y:auto}
+#rooms .none{font-size:min(4.2vw,18px);opacity:.6;padding:6px}
+.rm{font:inherit;letter-spacing:inherit;cursor:pointer;text-align:left;background:#fff;color:#151515;border:3px solid #151515;border-radius:10px;padding:8px 12px;font-size:min(6vw,28px);box-shadow:2px 3px 0 #151515}
+.rm:active{transform:translate(2px,2px);box-shadow:0 1px 0 #151515}
+.rm:disabled{opacity:.5;cursor:default}
+.rm small{display:block;font-size:.7em;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rm .md{font-size:.75em;padding:0 6px;border-radius:6px;color:#fff;background:#2ec4b6}.rm .md.pvp{background:#ff4b5c}
 #err{font-size:min(4.5vw,22px);color:#ffd23f;min-height:1em}
 @media (max-height:480px){.ov{gap:6px}.ov h1{font-size:min(13vw,22vh)}.ov h2{font-size:min(4vw,22px)}.help{font-size:13px;padding:6px 12px}.btn{font-size:30px}}
 </style>
@@ -94,8 +104,9 @@ body.touch #board{font-size:14px}body.touch #feed{top:40px;font-size:14px;left:1
   <h2 class="st">Skaldyrene har overtaget Mågevig. Giv dem ketchup.</h2>
   <input id="nm" class="card" maxlength="12" placeholder="Navn" aria-label="Navn" autocomplete="off" spellcheck="false">
   <div class="row"><button id="go" class="btn">INDLÆSER…</button></div>
-  <div class="row" id="mp"><button id="bco" class="btn sm">CO-OP</button><button id="bpv" class="btn sm">PVP</button></div>
+  <div class="row" id="mp"><button id="bco" class="btn sm">NY CO-OP</button><button id="bpv" class="btn sm">NY PVP</button></div>
   <div id="err" class="st"></div>
+  <div id="lob" class="card" style="display:none"><div class="lh">ÅBNE SPIL</div><div id="rooms"><div class="none">Ingen åbne spil</div></div></div>
   <div class="help card" id="help"></div>
 </div>
 <div id="pause" class="ov" style="display:none"><h2 class="st" style="font-size:min(10vw,60px)">PAUSE</h2><button id="res" class="btn">FORTSÆT</button><div class="row" id="mpb"><button id="cp" class="btn sm" style="display:none">KOPIÉR LINK</button><button id="lv" class="btn sm">FORLAD</button></div></div>

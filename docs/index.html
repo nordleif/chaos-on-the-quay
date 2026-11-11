@@ -65,6 +65,16 @@ body.touch #board{font-size:14px}body.touch #feed{top:40px;font-size:14px;left:1
 .btn.sm{font-size:min(7vw,34px);padding:4px 22px;background:#2ec4b6}
 .btn:disabled{opacity:.6}
 #nm{pointer-events:auto;font:inherit;font-size:min(6vw,26px);text-align:center;text-transform:uppercase;width:min(80vw,300px);padding:6px 10px;-webkit-user-select:text;user-select:text;outline:none}
+#menu{justify-content:safe center;overflow-y:auto}
+#lob{pointer-events:auto;width:min(92vw,520px);padding:8px 10px}
+#lob .lh{font-size:min(5vw,24px);margin-bottom:4px}
+#rooms{display:flex;flex-direction:column;gap:6px;max-height:34vh;overflow-y:auto}
+#rooms .none{font-size:min(4.2vw,18px);opacity:.6;padding:6px}
+.rm{font:inherit;letter-spacing:inherit;cursor:pointer;text-align:left;background:#fff;color:#151515;border:3px solid #151515;border-radius:10px;padding:8px 12px;font-size:min(6vw,28px);box-shadow:2px 3px 0 #151515}
+.rm:active{transform:translate(2px,2px);box-shadow:0 1px 0 #151515}
+.rm:disabled{opacity:.5;cursor:default}
+.rm small{display:block;font-size:.7em;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rm .md{font-size:.75em;padding:0 6px;border-radius:6px;color:#fff;background:#2ec4b6}.rm .md.pvp{background:#ff4b5c}
 #err{font-size:min(4.5vw,22px);color:#ffd23f;min-height:1em}
 @media (max-height:480px){.ov{gap:6px}.ov h1{font-size:min(13vw,22vh)}.ov h2{font-size:min(4vw,22px)}.help{font-size:13px;padding:6px 12px}.btn{font-size:30px}}
 </style>
@@ -94,8 +104,9 @@ body.touch #board{font-size:14px}body.touch #feed{top:40px;font-size:14px;left:1
   <h2 class="st">Skaldyrene har overtaget Mågevig. Giv dem ketchup.</h2>
   <input id="nm" class="card" maxlength="12" placeholder="Navn" aria-label="Navn" autocomplete="off" spellcheck="false">
   <div class="row"><button id="go" class="btn">INDLÆSER…</button></div>
-  <div class="row" id="mp"><button id="bco" class="btn sm">CO-OP</button><button id="bpv" class="btn sm">PVP</button></div>
+  <div class="row" id="mp"><button id="bco" class="btn sm">NY CO-OP</button><button id="bpv" class="btn sm">NY PVP</button></div>
   <div id="err" class="st"></div>
+  <div id="lob" class="card" style="display:none"><div class="lh">ÅBNE SPIL</div><div id="rooms"><div class="none">Ingen åbne spil</div></div></div>
   <div class="help card" id="help"></div>
 </div>
 <div id="pause" class="ov" style="display:none"><h2 class="st" style="font-size:min(10vw,60px)">PAUSE</h2><button id="res" class="btn">FORTSÆT</button><div class="row" id="mpb"><button id="cp" class="btn sm" style="display:none">KOPIÉR LINK</button><button id="lv" class="btn sm">FORLAD</button></div></div>
@@ -725,7 +736,7 @@ function remoteShot(m){const w=WPN[m.w]||WPN[0],o=m.o;remoteSfx(w.s,o[0],o[2]);
 let boardT=0;
 function board(dt){boardT-=dt;if(boardT>0)return;boardT=.25;$('board').innerHTML=boardText()}
 function boardText(){const rows=[{n:myName(),s:game.score,c:NET.css,me:1}];for(const p of NET.peers.values())rows.push({n:p.name,s:p.sc||0,c:p.css});rows.sort((a,b)=>b.s-a.s);
-  return(pvp()?'<div class="bh">FØRST TIL '+PVP_WIN+'</div>':'')+rows.map(r=>'<div'+(r.me?' class="me"':'')+'><span style="color:'+r.c+'">'+esc(r.n)+'</span> '+r.s+'</div>').join('')}
+  return'<div class="bh">'+esc(roomLabel(NET.room||''))+(pvp()?' · FØRST TIL '+PVP_WIN:'')+'</div>'+rows.map(r=>'<div'+(r.me?' class="me"':'')+'><span style="color:'+r.c+'">'+esc(r.n)+'</span> '+r.s+'</div>').join('')}
 function feed(text){const f=$('feed'),d=document.createElement('div');d.textContent=text;f.appendChild(d);while(f.children.length>4)f.firstChild.remove();setTimeout(()=>d.remove(),4500)}
 function feedKill(victim,victimId,by){feed(by&&by!==victimId?nameOf(by)+' SPLATTEDE '+victim:victim+' ER NEDE')}
 
@@ -801,7 +812,16 @@ function connect(room,mode){return new Promise((res,rej)=>{let ws,done=false;con
   ws.onclose=()=>{clearTimeout(to);if(done&&NET.ws===ws)netLost();else fail('net')}})}
 function netLost(){NET.on=false;NET.ws=null;NET.host=false;for(const id of[...NET.peers.keys()])removePeer(id);resetGame();game.state='menu';
   for(const id of['hud','over','pause'])$(id).style.display='none';tl.style.display='none';$('menu').style.display='flex';if(document.exitPointerLock&&locked)document.exitPointerLock();$('err').textContent='Forbindelsen blev afbrudt. Prøv igen.'}
-const newRoom=()=>Math.random().toString(36).slice(2,8);
+// Room names kids can read out loud: a harbour word and a number, e.g. "krabbe-42"
+const RWORDS=['krabbe','hummer','anker','pirat','kaptajn','boje','skib','fyrtaarn','tang','rejer','blaeksprutte','haj'];
+let openRooms=[];
+const roomLabel=id=>id.toUpperCase().replace(/-/g,' ').replace('FYRTAARN','FYRTÅRN').replace('BLAEKSPRUTTE','BLÆKSPRUTTE');
+function newRoom(){for(let i=0;i<20;i++){const id=rpick(RWORDS)+'-'+(10+Math.floor(Math.random()*90));if(!openRooms.some(r=>r.id===id))return id}return newRoom()}
+const LOBBY=SERVER.replace(/^ws/,'http')+'/lobby';
+function pollLobby(){if(game.state!=='menu'||NET.on||document.hidden)return;
+  fetch(LOBBY,{cache:'no-store'}).then(r=>r.json()).then(list=>{openRooms=list;showRooms()}).catch(()=>{})}
+function showRooms(){const el=$('rooms');if(!openRooms.length){el.innerHTML='<div class="none">Ingen åbne spil</div>';return}
+  el.innerHTML=openRooms.map((r,i)=>{const full=r.names.length>=r.max;return'<button class="rm" data-i="'+i+'"'+(full?' disabled':'')+'><b>'+esc(roomLabel(r.id))+'</b> <span class="md '+r.mode+'">'+(r.mode==='pvp'?'PVP':'CO-OP')+'</span> '+(full?'FULDT':r.names.length+'/'+r.max)+'<small>'+esc(r.names.join(', '))+'</small></button>'}).join('')}
 let joining=false;
 async function join(room,mode){if(joining)return;joining=true;$('err').textContent='';try{localStorage.setItem('kaj_name',myName())}catch(e){}
   initAudio();if(AC&&AC.state==='suspended')AC.resume();if(!isTouch)lock();
@@ -814,7 +834,9 @@ function initMenu(){const nm=$('nm');try{nm.value=localStorage.getItem('kaj_name
   nm.addEventListener('change',()=>{try{localStorage.setItem('kaj_name',myName())}catch(e){}});nm.addEventListener('keydown',e=>e.stopPropagation());
   const room=(QS.get('room')||'').toLowerCase().replace(/[^a-z0-9-]/g,'').slice(0,32);
   if(room){$('go').textContent='DELTAG';$('mp').style.display='none';$('go').onclick=()=>join(room,QS.get('mode')==='pvp'?'pvp':'coop')}
-  else{$('go').textContent='SOLO';$('go').onclick=startGame;$('bco').onclick=()=>join(newRoom(),'coop');$('bpv').onclick=()=>join(newRoom(),'pvp')}
+  else{$('go').textContent='SOLO';$('go').onclick=startGame;$('bco').onclick=()=>join(newRoom(),'coop');$('bpv').onclick=()=>join(newRoom(),'pvp');
+    $('lob').style.display='';$('rooms').onclick=e=>{const b=e.target.closest('.rm');if(!b||b.disabled)return;const r=openRooms[+b.dataset.i];if(r)join(r.id,r.mode)};
+    pollLobby();setInterval(pollLobby,3000)}
   $('cp').onclick=()=>{const b=$('cp');try{navigator.clipboard.writeText(location.href).then(()=>{b.textContent='KOPIERET';setTimeout(()=>b.textContent='KOPIÉR LINK',1500)})}catch(e){}};
   $('lv').onclick=()=>{location.href=location.pathname+(QS.get('server')?'?server='+encodeURIComponent(QS.get('server')):'')};
   document.addEventListener('visibilitychange',()=>{if(NET.on)send({t:'vis',v:!document.hidden})})}

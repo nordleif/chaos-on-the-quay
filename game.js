@@ -611,7 +611,7 @@ function remoteShot(m){const w=WPN[m.w]||WPN[0],o=m.o;remoteSfx(w.s,o[0],o[2]);
 let boardT=0;
 function board(dt){boardT-=dt;if(boardT>0)return;boardT=.25;$('board').innerHTML=boardText()}
 function boardText(){const rows=[{n:myName(),s:game.score,c:NET.css,me:1}];for(const p of NET.peers.values())rows.push({n:p.name,s:p.sc||0,c:p.css});rows.sort((a,b)=>b.s-a.s);
-  return(pvp()?'<div class="bh">FØRST TIL '+PVP_WIN+'</div>':'')+rows.map(r=>'<div'+(r.me?' class="me"':'')+'><span style="color:'+r.c+'">'+esc(r.n)+'</span> '+r.s+'</div>').join('')}
+  return'<div class="bh">'+esc(roomLabel(NET.room||''))+(pvp()?' · FØRST TIL '+PVP_WIN:'')+'</div>'+rows.map(r=>'<div'+(r.me?' class="me"':'')+'><span style="color:'+r.c+'">'+esc(r.n)+'</span> '+r.s+'</div>').join('')}
 function feed(text){const f=$('feed'),d=document.createElement('div');d.textContent=text;f.appendChild(d);while(f.children.length>4)f.firstChild.remove();setTimeout(()=>d.remove(),4500)}
 function feedKill(victim,victimId,by){feed(by&&by!==victimId?nameOf(by)+' SPLATTEDE '+victim:victim+' ER NEDE')}
 
@@ -687,7 +687,16 @@ function connect(room,mode){return new Promise((res,rej)=>{let ws,done=false;con
   ws.onclose=()=>{clearTimeout(to);if(done&&NET.ws===ws)netLost();else fail('net')}})}
 function netLost(){NET.on=false;NET.ws=null;NET.host=false;for(const id of[...NET.peers.keys()])removePeer(id);resetGame();game.state='menu';
   for(const id of['hud','over','pause'])$(id).style.display='none';tl.style.display='none';$('menu').style.display='flex';if(document.exitPointerLock&&locked)document.exitPointerLock();$('err').textContent='Forbindelsen blev afbrudt. Prøv igen.'}
-const newRoom=()=>Math.random().toString(36).slice(2,8);
+// Room names kids can read out loud: a harbour word and a number, e.g. "krabbe-42"
+const RWORDS=['krabbe','hummer','anker','pirat','kaptajn','boje','skib','fyrtaarn','tang','rejer','blaeksprutte','haj'];
+let openRooms=[];
+const roomLabel=id=>id.toUpperCase().replace(/-/g,' ').replace('FYRTAARN','FYRTÅRN').replace('BLAEKSPRUTTE','BLÆKSPRUTTE');
+function newRoom(){for(let i=0;i<20;i++){const id=rpick(RWORDS)+'-'+(10+Math.floor(Math.random()*90));if(!openRooms.some(r=>r.id===id))return id}return newRoom()}
+const LOBBY=SERVER.replace(/^ws/,'http')+'/lobby';
+function pollLobby(){if(game.state!=='menu'||NET.on||document.hidden)return;
+  fetch(LOBBY,{cache:'no-store'}).then(r=>r.json()).then(list=>{openRooms=list;showRooms()}).catch(()=>{})}
+function showRooms(){const el=$('rooms');if(!openRooms.length){el.innerHTML='<div class="none">Ingen åbne spil</div>';return}
+  el.innerHTML=openRooms.map((r,i)=>{const full=r.names.length>=r.max;return'<button class="rm" data-i="'+i+'"'+(full?' disabled':'')+'><b>'+esc(roomLabel(r.id))+'</b> <span class="md '+r.mode+'">'+(r.mode==='pvp'?'PVP':'CO-OP')+'</span> '+(full?'FULDT':r.names.length+'/'+r.max)+'<small>'+esc(r.names.join(', '))+'</small></button>'}).join('')}
 let joining=false;
 async function join(room,mode){if(joining)return;joining=true;$('err').textContent='';try{localStorage.setItem('kaj_name',myName())}catch(e){}
   initAudio();if(AC&&AC.state==='suspended')AC.resume();if(!isTouch)lock();
@@ -700,7 +709,9 @@ function initMenu(){const nm=$('nm');try{nm.value=localStorage.getItem('kaj_name
   nm.addEventListener('change',()=>{try{localStorage.setItem('kaj_name',myName())}catch(e){}});nm.addEventListener('keydown',e=>e.stopPropagation());
   const room=(QS.get('room')||'').toLowerCase().replace(/[^a-z0-9-]/g,'').slice(0,32);
   if(room){$('go').textContent='DELTAG';$('mp').style.display='none';$('go').onclick=()=>join(room,QS.get('mode')==='pvp'?'pvp':'coop')}
-  else{$('go').textContent='SOLO';$('go').onclick=startGame;$('bco').onclick=()=>join(newRoom(),'coop');$('bpv').onclick=()=>join(newRoom(),'pvp')}
+  else{$('go').textContent='SOLO';$('go').onclick=startGame;$('bco').onclick=()=>join(newRoom(),'coop');$('bpv').onclick=()=>join(newRoom(),'pvp');
+    $('lob').style.display='';$('rooms').onclick=e=>{const b=e.target.closest('.rm');if(!b||b.disabled)return;const r=openRooms[+b.dataset.i];if(r)join(r.id,r.mode)};
+    pollLobby();setInterval(pollLobby,3000)}
   $('cp').onclick=()=>{const b=$('cp');try{navigator.clipboard.writeText(location.href).then(()=>{b.textContent='KOPIERET';setTimeout(()=>b.textContent='KOPIÉR LINK',1500)})}catch(e){}};
   $('lv').onclick=()=>{location.href=location.pathname+(QS.get('server')?'?server='+encodeURIComponent(QS.get('server')):'')};
   document.addEventListener('visibilitychange',()=>{if(NET.on)send({t:'vis',v:!document.hidden})})}
