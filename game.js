@@ -500,6 +500,22 @@ if(isTouch){tl.addEventListener('pointerdown',e=>{if(e.target!==tl)return;e.prev
   const btn=(id,dn,upf)=>{const b=$(id);b.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();b.classList.add('dn');dn(e)});const u=e=>{if(b.classList.contains('dn')&&(!b._pid||b._pid===e.pointerId)){b.classList.remove('dn');upf&&upf(e)}};addEventListener('pointerup',u);addEventListener('pointercancel',u)};
   btn('bF',e=>{$('bF')._pid=e.pointerId;inp.fire=true;inp.firePressed=true;lookIds.set(e.pointerId,[e.clientX,e.clientY])},()=>{inp.fire=false});
   btn('bJ',()=>{inp.jump=true});btn('bR',()=>reload());btn('bW',()=>swap((ws.cur+1)%3))}
+// gamepad (standard mapping: PlayStation, Xbox and most USB pads)
+// Left stick move, right stick look, R2 fire, Cross jump, Square reload, Triangle/R1 next weapon,
+// L1 previous weapon, L2 or L3 sprint, Options pause, Cross on the end screen plays again.
+const pad={mx:0,mz:0,sprint:false,prev:[]};
+function pollPad(dt){const gp=navigator.getGamepads?[...navigator.getGamepads()].find(g=>g&&g.connected&&g.mapping==='standard')||[...navigator.getGamepads()].find(g=>g&&g.connected):null;
+  pad.mx=pad.mz=0;pad.sprint=false;if(!gp)return;
+  const dz=v=>Math.abs(v)<.15?0:(v-Math.sign(v)*.15)/.85,ax=i=>dz(gp.axes[i]||0),b=i=>{const x=gp.buttons[i];return !!x&&(x.pressed||x.value>.3)},prev=pad.prev,now=[];
+  for(let i=0;i<17;i++)now[i]=b(i);const hit=i=>now[i]&&!prev[i];pad.prev=now;
+  if(game.state==='over'){if(hit(0)&&$('over').style.display==='flex')$('again').click();return}
+  if(game.state!=='play')return;
+  if(hit(9)){if(game.paused)setPause(false);else{setPause(true);if(document.exitPointerLock&&locked)document.exitPointerLock()}}
+  if(game.paused)return;
+  pad.mx=ax(0);pad.mz=-ax(1);pad.sprint=now[6]||now[10];
+  const lx=ax(2),ly=ax(3);if(lx||ly)look(lx*Math.abs(lx)*2.8*dt,ly*Math.abs(ly)*2.0*dt,1);
+  if(hit(7)){inp.fire=true;inp.firePressed=true}else if(!now[7]&&prev[7])inp.fire=false;
+  if(hit(0))inp.jump=true;if(hit(2))reload();if(hit(3)||hit(5)||hit(15))swap((ws.cur+1)%3);if(hit(4)||hit(14))swap((ws.cur+2)%3);if(hit(12))swap(0)}
 
 // ---------- weapons logic ----------
 function swap(i){if(i===ws.cur||ws.sw>0)return;ws.next=i;ws.sw=.32;ws.rel=0;sfx.swap()}
@@ -719,9 +735,9 @@ function initMenu(){const nm=$('nm');try{nm.value=localStorage.getItem('kaj_name
 if(QS.has('debug'))window.__kaj={log:DBG,fire,camUpdate,NET,game,player,enemies,pickups,dyn,join,startGame,damage};
 // ---------- update ----------
 const _dir=new T.Vector3();
-function updPlayer(dt){const p=player;let ix=inp.mx,iz=inp.mz;if(!isTouch||keys.KeyW||keys.KeyS||keys.KeyA||keys.KeyD){ix+=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);iz+=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)}
+function updPlayer(dt){const p=player;let ix=inp.mx,iz=inp.mz;if(!isTouch||keys.KeyW||keys.KeyS||keys.KeyA||keys.KeyD){ix+=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);iz+=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)}ix+=pad.mx;iz+=pad.mz;
   p.inv=Math.max(0,p.inv-dt);if(game.paused){ix=iz=0;inp.fire=inp.firePressed=inp.jump=false}
-  const l=Math.hypot(ix,iz);if(l>1){ix/=l;iz/=l}const sprint=(keys.ShiftLeft||keys.ShiftRight||inp.sprint)&&iz>0,sp=sprint?10.5:7.2,sn=Math.sin(p.yaw),cs=Math.cos(p.yaw);
+  const l=Math.hypot(ix,iz);if(l>1){ix/=l;iz/=l}const sprint=(keys.ShiftLeft||keys.ShiftRight||inp.sprint||pad.sprint)&&iz>0,sp=sprint?10.5:7.2,sn=Math.sin(p.yaw),cs=Math.cos(p.yaw);
   const wx=(-sn*iz+cs*ix)*sp,wz=(-cs*iz-sn*ix)*sp,k=Math.min(1,(p.ground?13:3.2)*dt);p.vel.x+=(wx-p.vel.x)*k;p.vel.z+=(wz-p.vel.z)*k;
   if(inp.jump&&p.ground){p.vel.y=7.9;p.ground=false;sfx.jump()}inp.jump=false;
   p.vel.y-=22*dt;moveXZ(p.pos,p.vel.x*dt,p.vel.z*dt,p.r,p.h);p.pos.x=clamp(p.pos.x,-79,79);p.pos.z=clamp(p.pos.z,-77,76);
@@ -849,7 +865,7 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-last
 // everyone (host) or our avatar (client), so a timer keeps the simulation going without drawing.
 setInterval(()=>{if(!NET.on)return;const now=performance.now();let el=(now-last)/1000;if(el<.25)return;el=Math.min(el,2);last=now;
   while(el>1e-3){const d=Math.min(.05,el);step(d,now/1000);el-=d}},100);
-function step(dt,tt){
+function step(dt,tt){pollPad(dt);
   if(game.state==='menu'){menuA+=dt*.12;camera.position.set(Math.cos(menuA)*46-5,20,34+Math.sin(menuA)*30);camera.lookAt(0,3,8);updWorld(dt,tt)}
   else if(!game.paused||NET.on){game.time+=dt;
     if(game.state==='play'&&!player.dead){updPlayer(dt)}

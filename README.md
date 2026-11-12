@@ -71,4 +71,5 @@ The Workers free plan is enough for casual play. Durable Object requests are the
 ## Controls
 
 Desktop: WASD move, mouse aim/fire, Shift sprint, Space jump, 1-3 or wheel to switch weapon, R reload, M mute, Esc pause.
+Controller (PlayStation, Xbox or other USB/Bluetooth pad): left stick move, right stick aim, R2 fire, Cross jump, Square reload, Triangle or R1 next weapon, L1 previous weapon, L2 or L3 sprint, Options pause, Cross on the end screen plays again. Menus use the mouse.
 Touch: left thumb moves, drag on the right side to look, on-screen buttons for fire, jump, reload and weapon.
